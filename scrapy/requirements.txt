@@ -1,0 +1,7 @@
+Scrapy==2.6.2
+lxml==4.9.1
+parsel==1.9.1 
+w3lib==2.0.1
+Twisted==22.8.0
+pyOpenSSL==22.0.0
+cryptography==38.0.1
