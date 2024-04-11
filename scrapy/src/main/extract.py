@@ -7,8 +7,8 @@ class LinksSpider(Spider):
     name = 'links'
     allowed_domains = ['stackoverflow.com']
     start_urls = ['https://stackoverflow.com/questions']
+    
     path_document = './src/resource/links.txt'
-
     saved_links_set = set()
 
     def __init__(self, name=None, **kwargs): 
