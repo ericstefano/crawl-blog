@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from string import Template
 import re
 
-path_document = '../resource/links.txt'
+path_document = './src/resource/links.txt'
 template = Template("$url;$content\n")
 
 def extract_links_(url, depth):
