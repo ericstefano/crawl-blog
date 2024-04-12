@@ -32,7 +32,7 @@ const crawler = new PlaywrightCrawler({
   maxConcurrency: 1,
   maxRequestsPerMinute: 60,
   // maxRequestsPerCrawl: 5,
-  headless: false,
+  headless: true,
 });
 
 await crawler.run(start_urls);
