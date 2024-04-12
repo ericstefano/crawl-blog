@@ -43,8 +43,8 @@ router.addHandler("CRAWLING", async ({ page, response, log, enqueueLinks }) => {
 
 const crawler = new PlaywrightCrawler({
   requestHandler: router,
-  minConcurrency: 3,
-  maxConcurrency: 3,
+  minConcurrency: 2,
+  maxConcurrency: 2,
   maxRequestsPerMinute: 120,
   headless: true,
 });
