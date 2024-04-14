@@ -32,7 +32,7 @@ const respectRobotsFile = false;
 
 router.addDefaultHandler(async ({ log, page, enqueueLinks }) => {
   const anchors = await page.locator("a").all();
-  const hrefs = [];
+  const hrefs: Array<string> = [];
   for (const anchor of anchors) {
     const href = await anchor.getAttribute("href");
     if (!href) return;
