@@ -1,52 +1,58 @@
-import { createPlaywrightRouter, PlaywrightCrawler, RobotsFile } from "crawlee";
+import {
+  BrowserName,
+  createPlaywrightRouter,
+  DeviceCategory,
+  PlaywrightCrawler,
+  RobotsFile,
+} from "crawlee";
 import { dataset } from "./export";
 
 const router = createPlaywrightRouter();
-const domain = "stackoverflow.com";
-const start_urls = ["https://stackoverflow.com/questions"];
-const unique_urls = new Set();
-const visited_urls = new Set();
-
-let robots: null | RobotsFile = null;
-
-router.addDefaultHandler(async ({ enqueueLinks }) => {
-  robots = await RobotsFile.find("https://stackoverflow.com/robots.txt");
-  await enqueueLinks({ strategy: "same-domain", label: "CRAWLING" });
+const startUrls = ["https://stackoverflow.com/questions"];
+const robotsUrl = "https://stackoverflow.com/robots.txt";
+const crawler = new PlaywrightCrawler({
+  requestHandler: router,
+  minConcurrency: 1,
+  maxConcurrency: 1,
+  maxRequestsPerMinute: 60,
+  headless: true,
+  browserPoolOptions: {
+    fingerprintOptions: {
+      fingerprintGeneratorOptions: {
+        browsers: [BrowserName.chrome, BrowserName.firefox],
+        devices: [DeviceCategory.desktop],
+        locales: ["en-US"],
+      },
+    },
+  },
 });
+const robotsFile = await RobotsFile.find(robotsUrl);
+const visitedUrls = new Set<string>();
+const respectRobotsFile = false;
 
-router.addHandler("CRAWLING", async ({ page, response, log, enqueueLinks }) => {
-  const links = await page.locator("a").all();
+router.addDefaultHandler(async ({ log, page, enqueueLinks }) => {
+  const anchors = await page.locator("a").all();
   const hrefs = [];
-  for (const link of links) {
-    const href = await link.getAttribute("href");
-    const parsed = href?.trim();
-    const innerText = await page.innerText("*");
-    const isAllowed = robots?.isAllowed(href || "");
-    if (parsed?.includes(domain) && !unique_urls.has(parsed) && isAllowed) {
-      await dataset.pushData({
-        link: parsed,
-        plainText: innerText.replaceAll("\n", " "),
-      });
-      unique_urls.add(parsed);
-      hrefs.push(parsed);
-      log.info(`Saved ${parsed}`);
+  for (const anchor of anchors) {
+    const href = await anchor.getAttribute("href");
+    if (!href) return;
+    const isAllowed = robotsFile.isAllowed(href) || !respectRobotsFile;
+    if (isAllowed && !visitedUrls.has(href)) {
+      hrefs.push(href);
     }
   }
 
-  if (response && !visited_urls.has(response.url().trim())) {
-    const trimmed = response.url().trim();
-    log.info(`Visited ${trimmed}`);
-    visited_urls.add(trimmed);
+  const currentUrl = page.url();
+  log.info(`Visited ${currentUrl}`);
+  if (robotsFile.isAllowed(currentUrl) && !visitedUrls.has(currentUrl)) {
+    visitedUrls.add(currentUrl);
+    const innerText = await page.innerText("*");
+    await dataset.pushData({
+      link: currentUrl,
+      innerText: innerText.replaceAll("\n", " "),
+    });
     await enqueueLinks({ strategy: "same-domain", urls: hrefs });
   }
 });
 
-const crawler = new PlaywrightCrawler({
-  requestHandler: router,
-  minConcurrency: 2,
-  maxConcurrency: 2,
-  maxRequestsPerMinute: 120,
-  headless: true,
-});
-
-await crawler.run(start_urls);
+await crawler.run(startUrls);
