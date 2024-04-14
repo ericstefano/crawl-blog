@@ -25,6 +25,13 @@ const crawler = new PlaywrightCrawler({
       },
     },
   },
+  preNavigationHooks: [
+    async ({ blockRequests }) => {
+      await blockRequests({
+        extraUrlPatterns: [".mp4", ".webp", ".webm"],
+      });
+    },
+  ],
 });
 const robotsFile = await RobotsFile.find(robotsUrl);
 const visitedUrls = new Set<string>();
