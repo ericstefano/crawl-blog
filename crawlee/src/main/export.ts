@@ -1,5 +1,5 @@
-import { Dataset } from "crawlee";
-export const dataset = await Dataset.open("stackoverflow");
+import { dataset } from "./dataset";
+
 const info = await dataset.getInfo();
 const count = info?.itemCount;
 console.log(count);

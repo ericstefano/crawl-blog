@@ -5,7 +5,7 @@ import {
   PlaywrightCrawler,
   RobotsFile,
 } from "crawlee";
-import { dataset } from "./export";
+import { dataset } from "./dataset";
 
 const router = createPlaywrightRouter();
 const startUrls = ["https://stackoverflow.com/questions"];
