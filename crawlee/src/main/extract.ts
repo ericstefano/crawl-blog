@@ -50,7 +50,7 @@ router.addDefaultHandler(async ({ log, page, enqueueLinks }) => {
   }
 
   const currentUrl = page.url();
-  log.info(`Visited ${currentUrl}`);
+  log.info(`Crawled ${currentUrl}`);
   if (robotsFile.isAllowed(currentUrl) && !visitedUrls.has(currentUrl)) {
     visitedUrls.add(currentUrl);
     const innerText = await page.innerText("*");
