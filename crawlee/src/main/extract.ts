@@ -8,18 +8,23 @@ import {
 import { dataset } from "./dataset";
 
 const router = createPlaywrightRouter();
-const startUrls = ["https://stackoverflow.com/questions"];
-const robotsUrl = "https://stackoverflow.com/robots.txt";
+const startUrls = ["https://stackoverflow.com/questions?tab=Frequent"];
+const robotsUrl = "https://stackoverflow.com/questions/robots.txt";
+const robotsFile = await RobotsFile.find(robotsUrl);
+const visitedUrls = new Set<string>();
+const respectRobotsFile = false;
+const contentSelector = "div#content"
+const excludedSavePatterns = ['&page=', '&pageSize=', '?tab=']
 const crawler = new PlaywrightCrawler({
   requestHandler: router,
   minConcurrency: 1,
   maxConcurrency: 1,
-  maxRequestsPerMinute: 60,
+  maxRequestsPerMinute: 45,
   headless: true,
   browserPoolOptions: {
     fingerprintOptions: {
       fingerprintGeneratorOptions: {
-        browsers: [BrowserName.chrome, BrowserName.firefox],
+        browsers: [BrowserName.chrome],
         devices: [DeviceCategory.desktop],
         locales: ["en-US"],
       },
@@ -28,37 +33,37 @@ const crawler = new PlaywrightCrawler({
   preNavigationHooks: [
     async ({ blockRequests }) => {
       await blockRequests({
-        extraUrlPatterns: [".mp4", ".webp", ".webm"],
+        urlPatterns: ['.css', '.mp4', '.pdf', '.woff', '.zip', '.jpeg', 'jpg', '.wepb', '.webm']
       });
     },
   ],
 });
-const robotsFile = await RobotsFile.find(robotsUrl);
-const visitedUrls = new Set<string>();
-const respectRobotsFile = false;
+
+function isExcludedFromSavePatterns(url: string) {
+  return excludedSavePatterns.some((pattern) => url.includes(pattern))
+}
+
+function isUrlAllowed(url: string) {
+  return (!respectRobotsFile || robotsFile.isAllowed(url)) && !visitedUrls.has(url)
+}
 
 router.addDefaultHandler(async ({ log, page, enqueueLinks }) => {
-  const anchors = await page.locator("a").all();
-  const hrefs: Array<string> = [];
-  for (const anchor of anchors) {
-    const href = await anchor.getAttribute("href");
-    if (!href) return;
-    const isAllowed = robotsFile.isAllowed(href) || !respectRobotsFile;
-    if (isAllowed && !visitedUrls.has(href)) {
-      hrefs.push(href);
-    }
-  }
-
   const currentUrl = page.url();
   log.info(`Crawled ${currentUrl}`);
-  if (robotsFile.isAllowed(currentUrl) && !visitedUrls.has(currentUrl)) {
+
+  if (isUrlAllowed(currentUrl)) {
     visitedUrls.add(currentUrl);
-    const innerText = await page.innerText("*");
-    await dataset.pushData({
-      link: currentUrl,
-      innerText: innerText.replaceAll("\n", " "),
-    });
-    await enqueueLinks({ strategy: "same-domain", urls: hrefs });
+
+    if (!isExcludedFromSavePatterns(currentUrl)) {
+      const innerText = await page.innerText(contentSelector);
+      await dataset.pushData({
+        link: currentUrl,
+        innerText: innerText.replaceAll("\n", " "),
+      });
+      log.info(`Saved ${currentUrl}`);
+    }
+    await enqueueLinks({ strategy: "same-domain", selector: 'h3 a.s-link', forefront: true });
+    await enqueueLinks({ strategy: "same-domain", selector: 'a.s-pagination--item.js-pagination-item' });
   }
 });
 
