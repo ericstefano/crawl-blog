@@ -19,12 +19,12 @@ const crawler = new PlaywrightCrawler({
   requestHandler: router,
   minConcurrency: 1,
   maxConcurrency: 1,
-  maxRequestsPerMinute: 45,
+  maxRequestsPerMinute: 30,
   headless: true,
   browserPoolOptions: {
     fingerprintOptions: {
       fingerprintGeneratorOptions: {
-        browsers: [BrowserName.chrome],
+        browsers: [BrowserName.chrome, BrowserName.firefox],
         devices: [DeviceCategory.desktop],
         locales: ["en-US"],
       },
